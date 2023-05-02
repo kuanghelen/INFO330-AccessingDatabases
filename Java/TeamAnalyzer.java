@@ -1,4 +1,5 @@
 import java.sql.*;
+import java.util.ArrayList;
 
 public class TeamAnalyzer {
     // All the "against" column suffixes:
@@ -17,9 +18,50 @@ public class TeamAnalyzer {
 
         // This bit of JDBC magic I provide as a free gift :-)
         // The rest is up to you.
-        try (Connection con = DriverManager.getConnection("jdbc:sqlite:pokemon.db")) {
+        try (Connection con = DriverManager.getConnection("jdbc:sqlite:pokemon.sqlite")) {
+            // find all types of a pokemon given the pokedex number
+            String type_id_sql = "SELECT t.* " +
+                                 "FROM pokemon AS p, pokemon_type AS pt, type AS t " +
+                                 "WHERE p.pokedex_number = ? " +
+                                 "AND p.id = pt.pokemon_id " +
+                                 "AND pt.type_id = t.id";
+            
+            // find all against information about a pokemon given its two type ids
+            String against_sql = "SELECT a.* " +
+                                 "FROM against AS a " +
+                                 "WHERE type_source_id1 = ? " +
+                                 "AND type_source_id2 = ? ";
+            
+            // find the name of the pokemon
+            String name_sql = "SELECT name from pokemon WHERE pokedex_number = ?";
+            
+            // extra credit: find the pokedex number associated with a given pokemon name
+            String pokedex_sql = "SELECT pokedex_number FROM pokemon WHERE name = ?";
+
+            // use PreparedStatements to prevent SQL injections
+            PreparedStatement typeIdStmt = con.prepareStatement(type_id_sql);
+            PreparedStatement againstStmt = con.prepareStatement(against_sql);
+            PreparedStatement nameStmt = con.prepareStatement(name_sql);
+            PreparedStatement pokedexStmt = con.prepareStatement(pokedex_sql);
+            
             for (String arg : args) {
-                print("Analyzing " + arg);
+                // extra credit: convert pokemon name to pokedex number if necessary
+                int argToInt = -1; // will store pokedex number
+                try {
+                    argToInt = Integer.parseInt(arg); // was given a String pokedex number, convert it into an int
+                } catch (Exception e) { // was not given pokedex number; must find the pokedex number
+                    try {
+                        pokedexStmt.setString(1, arg);
+                        ResultSet rs = pokedexStmt.executeQuery();
+                        if (rs.next()) {
+                            argToInt = rs.getInt("pokedex_number");
+                        }
+                    } catch (Exception ee) {
+                        ee.printStackTrace();
+                    }
+                }
+
+                print("Analyzing " + argToInt);
 
                 // Analyze the pokemon whose pokedex_number is in "arg"
 
@@ -27,6 +69,73 @@ public class TeamAnalyzer {
                 // Remember to look at those "against_NNN" column values; greater than 1
                 // means the Pokemon is strong against that type, and less than 1 means
                 // the Pokemon is weak against that type
+                String pokemonName = ""; // the pokemon's name
+                ArrayList<Integer> typesIdArr = new ArrayList<Integer>();   // list of type ids (will be size 2)
+                ArrayList<String> typesNameArr = new ArrayList<String>();   // list of type names (will be size 2)
+                ArrayList<Double> againstInfo = new ArrayList<Double>();    // list of against_x values (will be size 18)
+                try {
+                    // determine the list of type ids and type names given pokedex number
+                    typeIdStmt.setInt(1, argToInt);
+                    ResultSet typeRS = typeIdStmt.executeQuery();
+                    while (typeRS.next()) {
+                        typesIdArr.add(typeRS.getInt("id"));
+                        typesNameArr.add(typeRS.getString("name"));
+                    }
+                    typeRS.close();
+                    
+                    // determine the list of against_x values given type1 id and type2 id
+                    againstStmt.setInt(1, typesIdArr.get(0));
+                    againstStmt.setInt(2, typesIdArr.get(1));
+                    ResultSet againstRS = againstStmt.executeQuery();
+                    while (againstRS.next()) {
+                        againstInfo.add(againstRS.getDouble("against_bug"));
+                        againstInfo.add(againstRS.getDouble("against_dark"));
+                        againstInfo.add(againstRS.getDouble("against_dragon"));
+                        againstInfo.add(againstRS.getDouble("against_electric"));
+                        againstInfo.add(againstRS.getDouble("against_fairy"));
+                        againstInfo.add(againstRS.getDouble("against_fight"));
+                        againstInfo.add(againstRS.getDouble("against_fire"));
+                        againstInfo.add(againstRS.getDouble("against_flying"));
+                        againstInfo.add(againstRS.getDouble("against_ghost"));
+                        againstInfo.add(againstRS.getDouble("against_grass"));
+                        againstInfo.add(againstRS.getDouble("against_ground"));
+                        againstInfo.add(againstRS.getDouble("against_ice"));
+                        againstInfo.add(againstRS.getDouble("against_normal"));
+                        againstInfo.add(againstRS.getDouble("against_poison"));
+                        againstInfo.add(againstRS.getDouble("against_psychic"));
+                        againstInfo.add(againstRS.getDouble("against_rock"));
+                        againstInfo.add(againstRS.getDouble("against_steel"));
+                        againstInfo.add(againstRS.getDouble("against_water"));
+                    }
+                    againstRS.close();
+                    
+                    // determine the pokemon's name given pokedex number
+                    nameStmt.setInt(1, argToInt);
+                    ResultSet nameRS = nameStmt.executeQuery();
+                    if (nameRS.next()) {
+                        pokemonName = nameRS.getString("name");
+                    }
+                    nameRS.close();
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+                // determine the list of strong against and weak against types
+                ArrayList<String> strong = new ArrayList<String>();
+                ArrayList<String> weak = new ArrayList<String>();
+                for (int i = 0; i < againstInfo.size(); i++) {
+                    Double val = againstInfo.get(i);
+                    if (val < 1) {
+                        strong.add("'" + types[i] + "'");
+                    } else if (val > 1) {
+                        weak.add("'" + types[i] + "'");
+                    }
+                }
+                
+                // print individual pokemon information
+                print(pokemonName + " (" + typesNameArr.get(0) + " " + typesNameArr.get(1) + ") " + 
+                                    "is strong against " + strong + " but weak against " + weak);
             }
 
             String answer = input("Would you like to save this team? (Y)es or (N)o: ");
