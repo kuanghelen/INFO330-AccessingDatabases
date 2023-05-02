@@ -63,12 +63,6 @@ public class TeamAnalyzer {
 
                 print("Analyzing " + argToInt);
 
-                // Analyze the pokemon whose pokedex_number is in "arg"
-
-                // You will need to write the SQL, extract the results, and compare
-                // Remember to look at those "against_NNN" column values; greater than 1
-                // means the Pokemon is strong against that type, and less than 1 means
-                // the Pokemon is weak against that type
                 String pokemonName = ""; // the pokemon's name
                 ArrayList<Integer> typesIdArr = new ArrayList<Integer>();   // list of type ids (will be size 2)
                 ArrayList<String> typesNameArr = new ArrayList<String>();   // list of type names (will be size 2)
@@ -87,25 +81,10 @@ public class TeamAnalyzer {
                     againstStmt.setInt(1, typesIdArr.get(0));
                     againstStmt.setInt(2, typesIdArr.get(1));
                     ResultSet againstRS = againstStmt.executeQuery();
-                    while (againstRS.next()) {
-                        againstInfo.add(againstRS.getDouble("against_bug"));
-                        againstInfo.add(againstRS.getDouble("against_dark"));
-                        againstInfo.add(againstRS.getDouble("against_dragon"));
-                        againstInfo.add(againstRS.getDouble("against_electric"));
-                        againstInfo.add(againstRS.getDouble("against_fairy"));
-                        againstInfo.add(againstRS.getDouble("against_fight"));
-                        againstInfo.add(againstRS.getDouble("against_fire"));
-                        againstInfo.add(againstRS.getDouble("against_flying"));
-                        againstInfo.add(againstRS.getDouble("against_ghost"));
-                        againstInfo.add(againstRS.getDouble("against_grass"));
-                        againstInfo.add(againstRS.getDouble("against_ground"));
-                        againstInfo.add(againstRS.getDouble("against_ice"));
-                        againstInfo.add(againstRS.getDouble("against_normal"));
-                        againstInfo.add(againstRS.getDouble("against_poison"));
-                        againstInfo.add(againstRS.getDouble("against_psychic"));
-                        againstInfo.add(againstRS.getDouble("against_rock"));
-                        againstInfo.add(againstRS.getDouble("against_steel"));
-                        againstInfo.add(againstRS.getDouble("against_water"));
+                    if (againstRS.next()) {
+                        for (int i = 0; i < types.length; i++) {
+                            againstInfo.add(againstRS.getDouble("against_" + types[i]));
+                        }
                     }
                     againstRS.close();
                     
