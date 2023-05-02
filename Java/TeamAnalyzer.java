@@ -61,7 +61,7 @@ public class TeamAnalyzer {
                     }
                 }
 
-                print("Analyzing " + argToInt);
+                print("Analyzing " + arg);
 
                 String pokemonName = ""; // the pokemon's name
                 ArrayList<Integer> typesIdArr = new ArrayList<Integer>();   // list of type ids (will be size 2)
